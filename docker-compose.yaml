@@ -1,0 +1,65 @@
+services:
+
+  nats:
+    image: nats:2.10
+    command: -c /etc/config/nats/server.conf
+    restart: unless-stopped
+    networks:
+      - network
+    volumes:
+      - nats:/data
+      - ./scripts/nats/server.conf:/etc/config/nats/server.conf:ro
+    ports:
+      - "4222:4222"
+      - "1883:1883"
+      - "8222:8222"
+
+  nats-dashboard:
+    image: mdawar/nats-dashboard
+    restart: unless-stopped
+    networks:
+      - network
+    environment:
+      - PUBLIC_SERVERS_LIST=http://localhost:8222
+    ports:
+      - "8223:80"
+    depends_on:
+      - nats
+
+  test-service:
+    build:
+      context: ./apps/test-service
+    hostname: test-service
+    restart: unless-stopped
+    networks:
+      - network
+    environment:
+      - NODE_ENV=local-dev
+      - HTTP_PORT=3000
+      - LOG_LEVEL=info
+
+      - NATS_SERVER_URL=nats://nats:4222
+      - NATS_TOKEN=My-NATS-Secret
+      - NATS_EMITTER_CLIENT_ID=testsvc-emitter
+      - NATS_LISTENER_CLIENT_ID=testsvc-listener
+      - NATS_EVENTS_STREAM=TESTSVC_EVENTS
+      - NATS_EVENTS_SUBJECT=testsvc.event.>
+      - NATS_EVENTS_DELIVERY_GROUP=testsvc-group
+      - NATS_EVENTS_DURABLE=testsvc-durable
+      - NATS_EVENTS_DELIVERY_TO=testsvc-messages
+
+      - MQTT_URL=mqtt://localhost:1883
+      - MQTT_TOKEN=My-MQTT-Secret
+    depends_on:
+      - nats
+    command: npm run start:debug
+    volumes:
+      - ./apps/test-service:/usr/src/app
+    ports:
+      - "3000:3000"
+
+networks:
+  network:
+
+volumes:
+  nats:
