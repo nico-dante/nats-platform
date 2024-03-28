@@ -10,10 +10,10 @@ import EventEmitter from 'events';
 import { AppService } from '../app.service';
 import { AppController } from '../app.controller';
 
-const mockConsoleLog = jest.fn();
-
 describe('MyLogger', () => {
   const originalEnv = process.env;
+
+  const mockConsoleLog = jest.fn();
 
   let logger: MyLogger;
 
@@ -50,19 +50,19 @@ describe('MyLogger', () => {
   });
 });
 
-const mockAppLoggerService = {
-  log: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  debug: jest.fn(),
-
-  setContext: jest.fn(),
-};
-
 describe('LoggerMiddleware', () => {
   let middleware: LoggerMiddleware;
 
   const expressMock = new ExpressMock();
+
+  const mockAppLoggerService = {
+    log: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+
+    setContext: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

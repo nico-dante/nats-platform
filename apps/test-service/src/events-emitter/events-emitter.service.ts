@@ -16,18 +16,14 @@ export class EventsEmitterService {
   }
 
   async emit(title: string, content: Record<string, any>): Promise<PubAck> {
-    try {
-      const nc = await this.natsClient.connect();
+    const nc = await this.natsClient.connect();
 
-      return nc.jetstream().publish(
-        `testsvc.event.${title.toLocaleLowerCase().replaceAll(' ', '_')}`,
-        this.natsCodec.encode({
-          header: { title, createdAt: new Date() },
-          payload: content,
-        }),
-      );
-    } catch (error) {
-      console.error('Failed to emit event', error);
-    }
+    return nc.jetstream().publish(
+      `testsvc.event.${title.toLocaleLowerCase().replaceAll(' ', '_')}`,
+      this.natsCodec.encode({
+        header: { title, createdAt: new Date() },
+        payload: content,
+      }),
+    );
   }
 }

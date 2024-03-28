@@ -4,14 +4,18 @@ import { LOCAL_TEST_NODE_ENV } from '../util/common.util';
 import { MyLoggerModule } from '../util/logging.util';
 import { NatsJetStreamClientProxy } from '@nestjs-plugins/nestjs-nats-jetstream-transport';
 import { mockNatsClient } from '../util/nats.mock';
+import { JetStreamPublishOptions, Payload, PubAck } from 'nats';
 
 describe('EventsEmitterService', () => {
   let service: EventsEmitterService;
 
   const originalEnv = process.env;
 
-  let sendFn: () => void;
-  let emitFn: () => void;
+  let publishFn: (
+    subj: string,
+    payload?: Payload,
+    options?: Partial<JetStreamPublishOptions>,
+  ) => Promise<PubAck>;
 
   beforeEach(async () => {
     process.env = {
@@ -19,8 +23,7 @@ describe('EventsEmitterService', () => {
       NODE_ENV: LOCAL_TEST_NODE_ENV,
     };
 
-    sendFn = jest.fn();
-    emitFn = jest.fn();
+    publishFn = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [MyLoggerModule],
@@ -28,7 +31,7 @@ describe('EventsEmitterService', () => {
         EventsEmitterService,
         {
           provide: NatsJetStreamClientProxy,
-          useValue: mockNatsClient(sendFn, emitFn),
+          useValue: mockNatsClient(publishFn),
         },
       ],
     }).compile();
@@ -43,7 +46,6 @@ describe('EventsEmitterService', () => {
   it('should emit event', async () => {
     await service.emit('test', { test: true });
 
-    expect(sendFn).toHaveBeenCalledTimes(0);
-    expect(emitFn).toHaveBeenCalledTimes(1);
+    expect(publishFn).toHaveBeenCalledTimes(1);
   });
 });

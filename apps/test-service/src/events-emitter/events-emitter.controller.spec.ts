@@ -5,14 +5,18 @@ import { EventsEmitterService } from './events-emitter.service';
 import { NatsJetStreamClientProxy } from '@nestjs-plugins/nestjs-nats-jetstream-transport';
 import { mockNatsClient } from '../util/nats.mock';
 import { LOCAL_TEST_NODE_ENV } from '../util/common.util';
+import { JetStreamPublishOptions, Payload, PubAck } from 'nats';
 
 describe('EventsEmitterController', () => {
   let controller: EventsEmitterController;
 
   const originalEnv = process.env;
 
-  let sendFn: () => void;
-  let emitFn: () => void;
+  let publishFn: (
+    subj: string,
+    payload?: Payload,
+    options?: Partial<JetStreamPublishOptions>,
+  ) => Promise<PubAck>;
 
   beforeEach(async () => {
     process.env = {
@@ -20,8 +24,7 @@ describe('EventsEmitterController', () => {
       NODE_ENV: LOCAL_TEST_NODE_ENV,
     };
 
-    sendFn = jest.fn();
-    emitFn = jest.fn();
+    publishFn = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [MyLoggerModule],
@@ -30,7 +33,7 @@ describe('EventsEmitterController', () => {
         EventsEmitterService,
         {
           provide: NatsJetStreamClientProxy,
-          useValue: mockNatsClient(sendFn, emitFn),
+          useValue: mockNatsClient(publishFn),
         },
       ],
     }).compile();
@@ -45,8 +48,7 @@ describe('EventsEmitterController', () => {
   it('should emit event', async () => {
     await controller.emit({ title: 'test', content: { test: true } });
 
-    expect(sendFn).toHaveBeenCalledTimes(0);
-    expect(emitFn).toHaveBeenCalledTimes(1);
+    expect(publishFn).toHaveBeenCalledTimes(1);
   });
 
   it('should not emit event', async () => {
@@ -57,8 +59,7 @@ describe('EventsEmitterController', () => {
       error = err;
     }
 
-    expect(sendFn).toHaveBeenCalledTimes(0);
-    expect(emitFn).toHaveBeenCalledTimes(0);
+    expect(publishFn).toHaveBeenCalledTimes(0);
     expect(error).toBeDefined();
     expect(error.message).toBe('the body is not correct');
   });
